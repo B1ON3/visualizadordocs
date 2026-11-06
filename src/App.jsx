@@ -22,11 +22,52 @@ export default function App() {
     return str.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   };
 
-  const handleFileUpload = (e) => {
+  const normalizeText = (value) => {
+    return (value || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\uFFFD/g, '')
+      .toUpperCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const findEmpresaRow = (rows) => {
+    const comEmpresa = rows.filter((row) => (row.EMPRESA || '').trim());
+
+    const pernambuco = comEmpresa.find((row) => {
+      const nome = normalizeText(row.EMPRESA);
+      return nome.includes('PERNAMBUCO') && nome.includes('INVESTIMENTOS');
+    });
+    const perpart = comEmpresa.find((row) => normalizeText(row.EMPRESA).includes('PERPART'));
+
+    return pernambuco || perpart || comEmpresa[0] || rows[0] || {};
+  };
+
+  const readFileText = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const bytes = new Uint8Array(event.target.result);
+        try {
+          resolve(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+        } catch {
+          resolve(new TextDecoder('windows-1252').decode(bytes));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    Papa.parse(file, {
+    const csvText = await readFileText(file);
+
+    Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
       delimiter: ';',
@@ -46,8 +87,13 @@ export default function App() {
         const taxaBoletoNaoPago = 0; // Fixo como 0 conforme imagem ou extrair se existir no CSV
         const valorTotal = valorRecarga + taxaAdmin + taxaBoleto + taxaBoletoNaoPago;
 
-        // Extração dos dados do cabeçalho (usando a primeira linha válida)
-        const headerInfo = data[0] || {};
+        // Extração dos dados do cabeçalho priorizando a empresa do pedido
+        const headerInfo = findEmpresaRow(data);
+
+        // Funcionários em ordem alfabética
+        const funcionariosOrdenados = [...recargas].sort((a, b) =>
+          (a.FUNCIONARIO || '').localeCompare(b.FUNCIONARIO || '', 'pt-BR', { sensitivity: 'base' })
+        );
 
         setPedidoData({
           info: {
@@ -70,7 +116,7 @@ export default function App() {
             valorTotal,
             quantidadeCartoes: recargas.length
           },
-          funcionarios: recargas
+          funcionarios: funcionariosOrdenados
         });
       }
     });
