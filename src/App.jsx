@@ -5,7 +5,7 @@ import { Upload, Printer, X } from 'lucide-react';
 export default function App() {
   const [pedidoData, setPedidoData] = useState(null);
 
-  // Funções de formatação
+  // Coisas pra deixar formatado bonitinho, tipo moeda, CNPJ, CPF e normalizar texto
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
@@ -75,22 +75,22 @@ export default function App() {
       complete: (results) => {
         const data = results.data;
 
-        // Filtragem dos tipos de lançamento
+        // Filtro dos tipos de lançamento
         const recargas = data.filter(d => d.TIPO_LANC_PEDIDO === 'RECARGA');
         const taxaAdminRows = data.filter(d => d.TIPO_LANC_PEDIDO === 'TAXA ADMINISTRATIVA');
         const taxaBoletoRows = data.filter(d => d.TIPO_LANC_PEDIDO === 'TAXA DE BOLETO');
 
-        // Cálculo dos totais
+        // Cálculos Doidos kakkakakakakakakakak
         const valorRecarga = recargas.reduce((acc, curr) => acc + parseFloat(curr.VALOR_LANCAMENTO || 0), 0);
         const taxaAdmin = taxaAdminRows.reduce((acc, curr) => acc + parseFloat(curr.VALOR_LANCAMENTO || 0), 0);
         const taxaBoleto = taxaBoletoRows.reduce((acc, curr) => acc + parseFloat(curr.VALOR_LANCAMENTO || 0), 0);
-        const taxaBoletoNaoPago = 0; // Fixo como 0 conforme imagem ou extrair se existir no CSV
+        const taxaBoletoNaoPago = 0; // Fixo como 0 conforme imagem ou tirar do CSV se tiver
         const valorTotal = valorRecarga + taxaAdmin + taxaBoleto + taxaBoletoNaoPago;
 
-        // Extração dos dados do cabeçalho priorizando a empresa do pedido
+        // Extração dos dados do menu priorizando a realizadora do pedido
         const headerInfo = findEmpresaRow(data);
 
-        // Funcionários em ordem alfabética
+        // Botar os funcionarios em ordem alfabética pelo nome
         const funcionariosOrdenados = [...recargas].sort((a, b) =>
           (a.FUNCIONARIO || '').localeCompare(b.FUNCIONARIO || '', 'pt-BR', { sensitivity: 'base' })
         );
@@ -129,7 +129,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 font-sans text-sm text-gray-800">
 
-      {/* Controles: Visíveis apenas na tela, ocultos na impressão */}
+      {/* Controles: ele mostra na tela mas se esconde na mostra */}
       <div className="print:hidden max-w-5xl mx-auto mb-6 p-4 bg-white rounded-lg shadow flex flex-col sm:flex-row gap-4 justify-between items-center">
         <div>
           <h1 className="text-lg font-bold text-gray-700 mb-2">Importador de CSV - VEM</h1>
@@ -151,7 +151,7 @@ export default function App() {
         )}
       </div>
 
-      {/* Visualizador do Documento (O que será impresso) */}
+      {/* Visualizador do Documento (O que vai ver) */}
       {pedidoData && (
         <div className="max-w-5xl mx-auto bg-white p-8 shadow-lg print:shadow-none print:p-0 print:max-w-full relative">
 
@@ -165,7 +165,7 @@ export default function App() {
 
           <h2 className="text-center text-xl mb-8 tracking-wide">DETALHAMENTO DO PEDIDO</h2>
 
-          {/* Cabeçalho de Informações */}
+          {/* O menu onde vai puxar as informações */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1 mb-8">
             <div className="flex gap-2"><strong className="w-56">EMPRESA:</strong> <span>{pedidoData.info.empresa}</span></div>
             <div className="flex gap-2"><strong className="w-56">CNPJ:</strong> <span>{formatCNPJ(pedidoData.info.cnpj)}</span></div>
@@ -185,7 +185,7 @@ export default function App() {
             <div className="flex gap-2"><strong className="w-56">PRODUTO:</strong> <span>{pedidoData.info.produto}</span></div>
           </div>
 
-          {/* Tabela de Funcionários */}
+          {/* Tabela dos Funcionários */}
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#1c3553] text-white">
